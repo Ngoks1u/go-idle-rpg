@@ -20,32 +20,32 @@ const (
 type EquipmentQuality int
 
 const (
-	QualityCommon EquipmentQuality = iota // 普通
-	QualityUncommon                       // 优秀
-	QualityRare                           // 稀有
-	QualityEpic                           // 史诗
-	QualityLegendary                      // 传说
+	QualityCommon    EquipmentQuality = iota // 普通
+	QualityUncommon                          // 优秀
+	QualityRare                              // 稀有
+	QualityEpic                              // 史诗
+	QualityLegendary                         // 传说
 )
 
 // Equipment 装备
 type Equipment struct {
-	ID       int64           `db:"id"`
-	Name     string          `db:"name"`
-	Type     EquipmentType   `db:"type"`
+	ID       int64            `db:"id"`
+	Name     string           `db:"name"`
+	Type     EquipmentType    `db:"type"`
 	Quality  EquipmentQuality `db:"quality"`
-	Level    int             `db:"level"`
-	Attack   int             `db:"attack"`
-	Defense  int             `db:"defense"`
-	PlayerID int64           `db:"player_id"`
-	Equipped bool            `db:"equipped"`
+	Level    int              `db:"level"`
+	Attack   int              `db:"attack"`
+	Defense  int              `db:"defense"`
+	PlayerID int64            `db:"player_id"`
+	Equipped bool             `db:"equipped"`
 }
 
 // QualityNames 品质名称映射
 var QualityNames = map[EquipmentQuality]string{
-	QualityCommon:   "普通",
-	QualityUncommon: "优秀",
-	QualityRare:     "稀有",
-	QualityEpic:     "史诗",
+	QualityCommon:    "普通",
+	QualityUncommon:  "优秀",
+	QualityRare:      "稀有",
+	QualityEpic:      "史诗",
 	QualityLegendary: "传说",
 }
 
@@ -68,7 +68,7 @@ func GenerateEquipment(level int) *Equipment {
 	qualityRoll := rand.Float64()
 	var quality EquipmentQuality
 	switch {
-	case qualityRoll < 0.5:
+	case qualityRoll < 0.6:
 		quality = QualityCommon
 	case qualityRoll < 0.8:
 		quality = QualityUncommon
