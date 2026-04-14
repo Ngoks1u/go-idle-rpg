@@ -2,15 +2,23 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"go-idle-rpg/cache"
 	"go-idle-rpg/models"
 )
 
 var DB *sql.DB
+
+// 缓存 TTL
+const (
+	PlayerCacheTTL    = 5 * time.Minute
+	EquipmentCacheTTL = 10 * time.Minute
+)
 
 // Config 数据库配置
 type Config struct {
@@ -134,6 +142,17 @@ func CreatePlayer(name string) (*models.Player, error) {
 
 // GetPlayer 获取玩家 by ID
 func GetPlayer(id int64) (*models.Player, error) {
+	// 先尝试从缓存获取
+	if cache.Client != nil {
+		cachedData, err := cache.GetPlayerJSON(id)
+		if err == nil && cachedData != "" {
+			player := &models.Player{}
+			if err := json.Unmarshal([]byte(cachedData), player); err == nil {
+				return player, nil
+			}
+		}
+	}
+
 	query := `SELECT id, name, level, exp, health, max_health, attack, defense,
 	                 gold, is_fighting, auto_fight, last_fight, created_at, updated_at
 	          FROM players WHERE id = ?`
@@ -150,6 +169,13 @@ func GetPlayer(id int64) (*models.Player, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// 写入缓存
+	if cache.Client != nil {
+		if data, err := json.Marshal(player); err == nil {
+			cache.SetPlayerJSON(id, string(data), PlayerCacheTTL)
+		}
 	}
 
 	return player, nil
@@ -194,6 +220,13 @@ func UpdatePlayer(player *models.Player) error {
 		return fmt.Errorf("failed to update player: %w", err)
 	}
 
+	// 更新缓存
+	if cache.Client != nil {
+		if data, err := json.Marshal(player); err == nil {
+			cache.SetPlayerJSON(player.ID, string(data), PlayerCacheTTL)
+		}
+	}
+
 	return nil
 }
 
@@ -210,11 +243,28 @@ func SaveEquipment(equip *models.Equipment, playerID int64) error {
 
 	id, _ := result.LastInsertId()
 	equip.ID = id
+
+	// 清除装备缓存
+	if cache.Client != nil {
+		cache.DeleteEquipment(playerID)
+	}
+
 	return nil
 }
 
 // GetPlayerEquipment 获取玩家所有装备
 func GetPlayerEquipment(playerID int64) ([]*models.Equipment, error) {
+	// 先尝试从缓存获取
+	if cache.Client != nil {
+		cachedData, err := cache.GetEquipmentJSON(playerID)
+		if err == nil && cachedData != "" {
+			var equipment []*models.Equipment
+			if err := json.Unmarshal([]byte(cachedData), &equipment); err == nil {
+				return equipment, nil
+			}
+		}
+	}
+
 	query := `SELECT id, name, type, quality, level, attack, defense, equipped
 	          FROM equipment WHERE player_id = ? ORDER BY quality DESC, level DESC`
 
@@ -236,11 +286,24 @@ func GetPlayerEquipment(playerID int64) ([]*models.Equipment, error) {
 		equipment = append(equipment, equip)
 	}
 
+	// 写入缓存
+	if cache.Client != nil && len(equipment) > 0 {
+		if data, err := json.Marshal(equipment); err == nil {
+			cache.SetEquipmentJSON(playerID, string(data), EquipmentCacheTTL)
+		}
+	}
+
 	return equipment, nil
 }
 
 // DeletePlayer 删除玩家
 func DeletePlayer(id int64) error {
 	_, err := DB.Exec("DELETE FROM players WHERE id = ?", id)
+
+	// 清除缓存
+	if cache.Client != nil {
+		cache.DeletePlayer(id)
+	}
+
 	return err
 }

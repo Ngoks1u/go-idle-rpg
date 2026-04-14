@@ -1,0 +1,22 @@
+# Binaries
+idle_rpg
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Claude Code
+.claude/
+CLAUDE.md
+CLAUDE_ZH.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

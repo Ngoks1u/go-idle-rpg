@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"time"
 
+	"go-idle-rpg/cache"
 	"go-idle-rpg/db"
 	"go-idle-rpg/models"
 )
@@ -294,6 +295,11 @@ func (g *Game) EquipItem(index int) error {
 	_, err := db.DB.Exec("UPDATE equipment SET equipped = 1 WHERE id = ?", equip.ID)
 	if err != nil {
 		return fmt.Errorf("failed to equip: %w", err)
+	}
+
+	// 清除装备缓存
+	if cache.Client != nil {
+		cache.DeleteEquipment(g.Player.ID)
 	}
 
 	// 重新加载装备
